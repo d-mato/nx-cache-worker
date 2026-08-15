@@ -59,6 +59,16 @@ describe("authentication", () => {
     expect(res.status).toBe(401);
   });
 
+  it("responds 401 with exactly text/plain, as required by the Nx client", async () => {
+    // Nx compares the Content-Type byte-for-byte against "text/plain" and
+    // reports the endpoint as misconfigured on any mismatch (even a charset
+    // suffix), instead of showing the body as the error message.
+    const res = await fetchCache("somehash");
+    expect(res.status).toBe(401);
+    expect(res.headers.get("content-type")).toBe("text/plain");
+    expect(await res.text()).toBe("Missing or invalid authentication token");
+  });
+
   it("returns 401 for an empty bearer token", async () => {
     const res = await fetchCache("somehash", { token: "" });
     expect(res.status).toBe(401);

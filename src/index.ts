@@ -45,8 +45,17 @@ async function tokenEquals(provided: string, expected: string): Promise<boolean>
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
-function json(status: number, message: string): Response {
-  return Response.json({ message }, { status });
+/**
+ * Nx's client requires error responses with a Content-Type of exactly
+ * "text/plain" (compared byte-for-byte, so no charset suffix); on a 401 it
+ * shows the body as the error message, and anything else is reported as a
+ * misconfigured endpoint.
+ */
+function message(status: number, body: string): Response {
+  return new Response(body, {
+    status,
+    headers: { "content-type": "text/plain" },
+  });
 }
 
 export default {
@@ -58,16 +67,16 @@ export default {
     }
 
     const match = CACHE_PATH.exec(url.pathname);
-    if (!match) return json(404, "Not found");
+    if (!match) return message(404, "Not found");
     const hash = match[1];
 
     const auth = await authenticate(request, env);
-    if (auth === null) return json(401, "Missing or invalid authentication token");
+    if (auth === null) return message(401, "Missing or invalid authentication token");
 
     switch (request.method) {
       case "GET": {
         const object = await env.CACHE_BUCKET.get(hash);
-        if (object === null) return json(404, "The record was not found");
+        if (object === null) return message(404, "The record was not found");
         return new Response(object.body, {
           status: 200,
           headers: {
@@ -78,9 +87,9 @@ export default {
       }
       case "PUT": {
         if (auth !== "read-write") {
-          return json(403, "Access forbidden (read-only token)");
+          return message(403, "Access forbidden (read-only token)");
         }
-        if (request.body === null) return json(400, "Missing request body");
+        if (request.body === null) return message(400, "Missing request body");
 
         // Write-once: only store if no object exists under this key.
         // `etagDoesNotMatch: "*"` is the binding equivalent of `If-None-Match: *`;
@@ -89,12 +98,12 @@ export default {
           onlyIf: { etagDoesNotMatch: "*" },
         });
         if (result === null) {
-          return json(409, "Cannot override an existing record");
+          return message(409, "Cannot override an existing record");
         }
-        return json(200, "Successfully uploaded the output");
+        return message(200, "Successfully uploaded the output");
       }
       default:
-        return json(405, "Method not allowed");
+        return message(405, "Method not allowed");
     }
   },
 } satisfies ExportedHandler<Env>;
