@@ -1,0 +1,24 @@
+{
+  "name": "nx-cache-worker",
+  "version": "0.1.0",
+  "description": "Self-hosted Nx remote cache server on Cloudflare Workers + R2",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "@cloudflare/vitest-pool-workers": "^0.21.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.123.0"
+  }
+}
